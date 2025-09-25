@@ -1,35 +1,6 @@
 import numpy as np
 from scipy import sparse
 
-from sklearn.linear_model import Lasso
-
-class VARLasso:
-    def __init__(self, p=1, alpha=1):
-        self.p = p
-        self.alpha = alpha
-
-    def fit(self,vts, max_iter=100000):
-        N = vts.shape[1]
-        X = np.hstack([vts[self.p-i:-i] for i in range(1,1+self.p)])
-        Y = vts[self.p:]
-        if self.alpha == 0:
-            self.W = np.linalg.lstsq(X,Y, rcond=None)[0]
-        else:
-            self.W = np.zeros((N*self.p,N))
-            for j in range(N):
-                self.W[:,j] = Lasso(self.alpha,max_iter=max_iter,fit_intercept=False).fit(X,Y[:,j]).coef_
-
-    def predict(self,vts):
-        X = np.hstack([vts[self.p-1:]]+[vts[self.p-i:-i+1] for i in range(2,1+self.p)])
-        return X@self.W
-
-    def validate(self, vts):
-        X = np.hstack([vts[self.p-i:-i] for i in range(1,1+self.p)])
-        Y = vts[self.p:]
-        Y_pred = X@self.W
-        return np.sum((Y_pred-Y)**2)
-    
-
 def zero_expand_matrix(A):
     T, N = A.shape
     
@@ -92,7 +63,7 @@ class NetworkModel:
         
         if self.intercept:
             if self.global_intercept:
-                X_intercept = np.ones((X.shape[0],1))
+                X_intercept = np.ones((self.network.size*(len(vts)-self.alpha_order),1))
             else:
                 X_intercept = np.repeat(np.identity(self.network.size), len(vts)-self.alpha_order, axis=0)
             if not (self.global_alpha and self.global_beta):
