@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 
 from network import *
 from GNAR import *
@@ -97,6 +96,9 @@ class TVGNAR(NetworkModel):
         self.family = family
         self.gpu = gpu
         self.num_coefs = sum(self.alpha_orders)+sum(self.beta_order)
+        if self.gpu:
+            import torch
+            self.torch = torch
 
     def generate_basis_fourier(self):
         t = np.arange(1+self.alpha_order,self.T+1)
@@ -169,9 +171,9 @@ class TVGNAR(NetworkModel):
             self.X_basis = (self.X[:,:,np.newaxis]*np.tile(self.basis[:,np.newaxis,:],(self.N,1,1))).reshape(self.X.shape[0],-1)
         
         if self.gpu:
-            X_basis_gpu = torch.Tensor(self.X_basis).cuda()
-            y_gpu = torch.Tensor(self.y).cuda()
-            lstsq = torch.linalg.lstsq(X_basis_gpu,y_gpu)
+            X_basis_gpu = self.torch.Tensor(self.X_basis).cuda()
+            y_gpu = self.torch.Tensor(self.y).cuda()
+            lstsq = self.torch.linalg.lstsq(X_basis_gpu,y_gpu)
             basis_coefs, self.res = lstsq.solution.cpu().numpy(), lstsq.residuals.cpu().numpy()
         else:
             basis_coefs, self.res = np.linalg.lstsq(self.X_basis, self.y, rcond=None)[:2]
